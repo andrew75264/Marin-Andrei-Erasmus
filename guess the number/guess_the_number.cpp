@@ -23,18 +23,26 @@ int main()
 
 
     attempt=10;
-    attemptuser=0;
+    attemptuser=10;
+    k=0;
 
     cout<<"can you guess the number that i chose?"<<endl;
     cout<<"try and we'll see"<<endl;
     while(true)
     {cout<<"what's your guess= ";
      cin>>attempt;
-    attemptuser++;
+    attemptuser--;
+    k++;
+    cout<<"you have "<<attemptuser<<" attempts left"<<endl;
+    if(attemptuser==0)
+    {cout<<"you lose, the number was "<<randomnumber<<endl;
+        break
+    ;}
+
 
 
     if(attempt==randomnumber)
-    {cout<<"congratulations you guessed the number in "<<attemptuser<<" attempts"<<endl;
+    {cout<<"congratulations you guessed the number in "<<k<<" attempts"<<endl;
     break;
     }
     else if(attempt>randomnumber)
