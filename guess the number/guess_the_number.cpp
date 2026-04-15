@@ -30,7 +30,7 @@ int main()
     cout<<"try and we'll see"<<endl;
     while(true)
     {cout<<"what's your guess= ";
-     cin>>attempt;
+    cin>>attempt;
     attemptuser--;
     k++;
     cout<<"you have "<<attemptuser<<" attempts left"<<endl;
