@@ -2,6 +2,7 @@
 #include <array>
 #include <chrono>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <numeric>
@@ -208,6 +209,20 @@ void printGrid(const Grid& grid) {
         std::cout << "\n";
     }
     std::cout << "  +-------+-------+-------+\n";
+    // Afisare numere ramase de plasat
+    std::cout << "Remaining numbers to place:\n";
+    for (int n = 1; n <= 9; ++n) {
+        int count = 0;
+        for (int r = 0; r < 9; ++r) {
+            for (int c = 0; c < 9; ++c) {
+                if (grid[r][c] == n) ++count;
+            }
+        }
+        if (count < 9) {
+            std::cout << n << " (" << count << "/9) ";
+        }
+    }
+    std::cout << "\n";
 }
 
 void printCellCandidates(const Grid& board, int row, int col) {
@@ -258,15 +273,77 @@ void printCandidateGrid(const Grid& board) {
     }
 }
 
-void printStatus(Difficulty difficulty, int score, int hintsUsed, int undoCount, int streak, int elapsedSeconds) {
+void printStatus(const std::string& playerName, Difficulty difficulty, int score, int hintsUsed, int undoCount, int streak, int elapsedSeconds) {
     int minutes = elapsedSeconds / 60;
     int seconds = elapsedSeconds % 60;
-    std::cout << "Difficulty: " << difficultyName(difficulty)
+    std::cout << "Player: " << playerName
+              << "   Difficulty: " << difficultyName(difficulty)
               << "   Score: " << score
               << "   Streak: " << streak
               << "   Time: " << minutes << ':' << (seconds < 10 ? "0" : "") << seconds
               << "   Hints: " << hintsUsed
               << "   Undos: " << undoCount << "\n";
+}
+
+struct LeaderboardEntry {
+    std::string name;
+    int score;
+};
+
+std::vector<LeaderboardEntry> loadLeaderboard(const std::string& filename) {
+    std::vector<LeaderboardEntry> leaderboard;
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        return leaderboard;
+    }
+    std::string line;
+    while (std::getline(file, line)) {
+        std::string name;
+        int score = 0;
+        std::size_t sep = line.find('|');
+        if (sep != std::string::npos) {
+            name = line.substr(0, sep);
+            score = std::stoi(line.substr(sep + 1));
+            leaderboard.push_back({name, score});
+        }
+    }
+    return leaderboard;
+}
+
+void saveLeaderboard(const std::string& filename, const std::vector<LeaderboardEntry>& leaderboard) {
+    std::ofstream file(filename, std::ios::trunc);
+    if (!file.is_open()) {
+        return;
+    }
+    for (const auto& entry : leaderboard) {
+        file << entry.name << '|' << entry.score << '\n';
+    }
+}
+
+void printLeaderboard(const std::vector<LeaderboardEntry>& leaderboard) {
+    std::cout << "Leaderboard:\n";
+    if (leaderboard.empty()) {
+        std::cout << "  (no scores yet)\n";
+        return;
+    }
+    int rank = 1;
+    for (const auto& entry : leaderboard) {
+        std::cout << "  " << rank << ". " << entry.name << " - " << entry.score << "\n";
+        rank++;
+        if (rank > 10) {
+            break;
+        }
+    }
+}
+
+void updateLeaderboard(std::vector<LeaderboardEntry>& leaderboard, const std::string& name, int score) {
+    leaderboard.push_back({name, score});
+    std::sort(leaderboard.begin(), leaderboard.end(), [](const LeaderboardEntry& a, const LeaderboardEntry& b) {
+        return a.score > b.score;
+    });
+    if (leaderboard.size() > 10) {
+        leaderboard.resize(10);
+    }
 }
 
 void printHelp() {
@@ -282,16 +359,16 @@ void printHelp() {
 }
 
 void playVictoryMusic() {
-    std::cout << "Playing 15 seconds of Drake's \"God's Plan\"...\n";
+    std::cout << "Playing 30 seconds of Drake's \"God's Plan\" from 12 seconds in...\n";
     const std::vector<std::string> candidates = {"gods_plan.mp3", "Drake - God s Plan.mp3"};
     std::string cmd;
     for (const auto& file : candidates) {
         cmd += "if [ -f '" + file + "' ]; then ";
-        cmd += "ffplay -nodisp -autoexit -t 15 '" + file + "' >/dev/null 2>&1; ";
+        cmd += "ffplay -nodisp -autoexit -ss 12 -t 30 '" + file + "' >/dev/null 2>&1; ";
         cmd += "exit 0; fi; ";
     }
     cmd += "if command -v ffplay >/dev/null 2>&1; then ";
-    cmd += "ffplay -nodisp -autoexit -t 15 \"https://archive.org/download/drake-gods-plan/Drake%20-%20God%27s%20Plan.mp3\" >/dev/null 2>&1; ";
+    cmd += "ffplay -nodisp -autoexit -ss 12 -t 30 \"https://archive.org/download/drake-gods-plan/Drake%20-%20God%27s%20Plan.mp3\" >/dev/null 2>&1; ";
     cmd += "else printf 'Unable to play music. Install ffmpeg or place gods_plan.mp3 or \"Drake - God s Plan.mp3\" in the game folder.\n'; fi";
     int status = std::system(cmd.c_str());
     (void)status;
@@ -406,6 +483,16 @@ int main() {
     std::seed_seq seed{uint32_t(std::chrono::high_resolution_clock::now().time_since_epoch().count())};
     rng().seed(seed);
 
+    std::string playerName;
+    std::cout << "Enter your name: ";
+    std::getline(std::cin, playerName);
+    if (playerName.empty()) {
+        playerName = "Player";
+    }
+
+    const std::string leaderboardFile = "leaderboard.txt";
+    auto leaderboard = loadLeaderboard(leaderboardFile);
+
     Difficulty difficulty = chooseDifficulty();
     int score = startingScore(difficulty);
     int hintsUsed = 0;
@@ -425,15 +512,21 @@ int main() {
     std::cout << "Commands: A 1 5, hint, undo, cand A 1, score, s, q.\n";
     printHelp();
     std::cout << "\n";
+    printLeaderboard(leaderboard);
+    std::cout << "\n";
 
     while (true) {
         auto now = std::chrono::steady_clock::now();
         int elapsedSeconds = static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(now - gameStart).count());
-        printStatus(difficulty, score, hintsUsed, undoCount, streakCount, elapsedSeconds);
+        printStatus(playerName, difficulty, score, hintsUsed, undoCount, streakCount, elapsedSeconds);
         printGrid(puzzle);
         if (isComplete(puzzle)) {
             std::cout << "Congratulations! You completed the puzzle.\n";
             std::cout << "Final score: " << score << "\n";
+            updateLeaderboard(leaderboard, playerName, score);
+            saveLeaderboard(leaderboardFile, leaderboard);
+            std::cout << "\n";
+            printLeaderboard(leaderboard);
             playVictoryMusic();
             break;
         }
