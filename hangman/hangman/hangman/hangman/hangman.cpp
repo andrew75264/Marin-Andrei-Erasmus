@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <iostream>
 #include <random>
 #include <set>
@@ -57,7 +58,7 @@ void printHangman(int remainingAttempts) {
             "  _______",
             " |/      |",
             " |      (_)",
-            " |      \|",
+            " |      \\|",
             " |",
             "_|___"
         },
@@ -65,7 +66,7 @@ void printHangman(int remainingAttempts) {
             "  _______",
             " |/      |",
             " |      (_)",
-            " |      \|/",
+            " |      \\|/",
             " |",
             "_|___"
         },
@@ -73,17 +74,17 @@ void printHangman(int remainingAttempts) {
             "  _______",
             " |/      |",
             " |      (_)",
-            " |      \|/",
+            " |      \\|/",
             " |       |",
-            "_|___"
+            " |      /"
         },
         {
             "  _______",
             " |/      |",
             " |      (_)",
-            " |      \|/",
+            " |      \\|/",
             " |       |",
-            "_|___ /"
+            " |      / \\"
         }
     };
 
@@ -109,6 +110,30 @@ std::string sanitize(const std::string& input) {
         }
     }
     return result;
+}
+
+void printWinBanner() {
+    std::cout << "\n#############################\n";
+    std::cout << "#         YOU WIN!         #\n";
+    std::cout << "#############################\n\n";
+}
+
+void printLoseBanner(const std::string& word) {
+    const int innerWidth = 29;
+    auto printLine = [&](const std::string& text) {
+        std::string line = " " + text;
+        if ((int)line.size() > innerWidth) {
+            line = line.substr(0, innerWidth);
+        }
+        line += std::string(innerWidth - line.size(), ' ');
+        std::cout << "#" << line << "#\n";
+    };
+
+    std::cout << "\n###################################\n";
+    std::cout << "#          GAME OVER             #\n";
+    std::cout << "###################################\n";
+    printLine("The word was: " + word);
+    std::cout << "###################################\n\n";
 }
 
 int main() {
@@ -188,9 +213,12 @@ int main() {
         }
 
         if (isWordGuessed(secret, guessedLetters)) {
-            std::cout << "\nCongratulations! You guessed the word: " << secret << "\n";
+            printWinBanner();
+            std::cout << "The word was: " << secret << "\n";
+            system("timeout 35 ffplay -nodisp -autoexit -ss 12 -t 30 \"/home/robotica/Documentos/Marin Andrei/hangman/hangman/hangman/hangman/Drake - God s Plan.mp3\" 2>/dev/null");
         } else {
-            std::cout << "\nGame over. The word was: " << secret << "\n";
+            printLoseBanner(secret);
+            system("ffplay -nodisp -autoexit \"/home/robotica/Documentos/Marin Andrei/hangman/hangman/hangman/hangman/GTA V Wasted_Busted - Sound Effect (HD) [K3kFQHKE0LA].mp3\" 2>/dev/null");
         }
 
         std::cout << "Play again? (y/n): ";
